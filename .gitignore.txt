@@ -1,0 +1,4 @@
+# Dependencies (Never upload these!)
+node_modules/
+.pnp
+.pnp.js

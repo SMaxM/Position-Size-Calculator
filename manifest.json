@@ -1,0 +1,24 @@
+{
+  "name": "BTC Position Size Calculator",
+  "short_name": "BTC Calc",
+  "description": "Bitcoin position size calculator for traders",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#0d0d14",
+  "theme_color": "#f7931a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
