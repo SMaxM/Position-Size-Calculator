@@ -416,6 +416,25 @@
   });
 
   fetchPrice();
+
+  // Register service worker + force-check for updates on every load
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').then(reg => {
+        // Check for a new sw.js immediately on page load
+        reg.update();
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'activated') {
+              // New version took over — reload once to get fresh content
+              window.location.reload();
+            }
+          });
+        });
+      });
+    });
+  }
 </script>
 </body>
 </html>

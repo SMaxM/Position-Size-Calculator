@@ -2,12 +2,27 @@
 
 A mobile-first Bitcoin position size calculator with Long & Short support.
 
+## What's New in v3
+- **Fixed: stale version showing on Vercel/Netlify after redeploy**
+- `sw.js` now uses a versioned cache name (`APP_VERSION`) — bump this number every time you redeploy, and old caches are deleted automatically
+- Service worker uses `skipWaiting()` + `clients.claim()` so updates activate immediately instead of waiting for all tabs to close
+- HTML is now fetched network-first (always gets the latest page), other assets stay cache-first for speed
+- Page auto-reloads once when a new service worker version takes over
+
+### ⚠️ Important: bump the version on every deploy
+Open `sw.js` and increment this line before each deploy:
+```js
+const APP_VERSION = '2.0.1'; // bump this number on every deploy
+```
+This forces the browser to treat it as a new cache and discard the old one.
+
 ## What's New in v2
 - ▲ Long / ▼ Short direction toggle
 - Stop loss auto-fills yesterday's LOW for long, yesterday's HIGH for short
 - Trade ladder flips layout based on direction
 - Validation checks correct SL placement per direction
 - Button and badge colours reflect current direction
+
 
 ## Features
 - Live BTC/USD price from Binance API
