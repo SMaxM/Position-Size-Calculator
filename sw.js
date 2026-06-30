@@ -1,9 +1,5 @@
-const CACHE_NAME = 'btc-calc-v1';
-const ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json'
-];
+const CACHE_NAME = 'btc-calc-v2';
+const ASSETS = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', event => {
   event.waitUntil(

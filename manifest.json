@@ -1,7 +1,7 @@
 {
   "name": "BTC Position Size Calculator",
   "short_name": "BTC Calc",
-  "description": "Bitcoin position size calculator for traders",
+  "description": "Bitcoin long & short position size calculator for traders",
   "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#0d0d14",

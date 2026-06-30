@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BTC Calc">
+<link rel="manifest" href="manifest.json">
+<title>BTC Position Size Calculator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #0a0a0f; min-height: 100vh;
+    display: flex; justify-content: center; align-items: flex-start;
+  }
+  .phone-wrap { width: 100%; max-width: 390px; min-height: 100vh; background: #0d0d14; position: relative; }
+
+  .status-bar { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px 8px; font-size: 12px; font-weight: 600; color: #fff; }
+  .status-icons { display: flex; gap: 6px; align-items: center; }
+  .battery { width: 22px; height: 11px; border: 1.5px solid rgba(255,255,255,0.6); border-radius: 2.5px; position: relative; }
+  .battery::after { content:''; position:absolute; right:-4px; top:50%; transform:translateY(-50%); width:2px; height:5px; background:rgba(255,255,255,0.6); border-radius:0 1px 1px 0; }
+  .battery-fill { position:absolute; left:2px; top:2px; bottom:2px; width:60%; background:#fff; border-radius:1px; }
+  .signal-bars { display:flex; gap:2px; align-items:flex-end; height:11px; }
+  .signal-bars span { width:3px; background:#fff; border-radius:1px; }
+  .signal-bars span:nth-child(1){height:4px} .signal-bars span:nth-child(2){height:7px} .signal-bars span:nth-child(3){height:10px}
+
+  .header { padding: 8px 24px 20px; }
+  .header-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+  .app-title { font-size:28px; font-weight:700; color:#fff; letter-spacing:-0.5px; }
+  .btc-pill { display:flex; align-items:center; gap:6px; background:rgba(247,147,26,0.15); border:1px solid rgba(247,147,26,0.3); border-radius:20px; padding:6px 12px; }
+  .btc-dot { width:8px; height:8px; background:#f7931a; border-radius:50%; animation:pulse 2s infinite; }
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+  .btc-label { font-size:12px; color:#f7931a; font-weight:600; }
+  .price-display { display:flex; align-items:baseline; gap:8px; margin-top:4px; }
+  .price-main { font-size:36px; font-weight:700; color:#fff; letter-spacing:-1px; font-variant-numeric:tabular-nums; }
+  .price-change { font-size:13px; font-weight:500; padding:2px 8px; border-radius:6px; }
+  .price-change.up { background:rgba(52,199,89,0.15); color:#34c759; }
+  .price-change.down { background:rgba(255,59,48,0.15); color:#ff3b30; }
+  .price-fetching { color:rgba(255,255,255,0.4); font-size:13px; }
+
+  .divider { height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent); margin:0 24px; }
+  .form-section { padding:20px 24px; display:flex; flex-direction:column; gap:16px; }
+  .field-group { display:flex; flex-direction:column; gap:6px; }
+  .field-label { font-size:11px; font-weight:600; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.08em; display:flex; align-items:center; gap:6px; }
+  .live-badge { background:rgba(52,199,89,0.2); color:#34c759; font-size:9px; padding:1px 5px; border-radius:4px; }
+  .auto-badge { background:rgba(10,132,255,0.2); color:#0a84ff; font-size:9px; padding:1px 5px; border-radius:4px; }
+
+  .input-row { display:flex; align-items:center; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:14px; overflow:hidden; transition:border-color .2s,background .2s; }
+  .input-row:focus-within { border-color:rgba(247,147,26,0.5); background:rgba(255,255,255,0.08); }
+  .input-prefix { padding:0 12px; font-size:15px; font-weight:500; color:rgba(255,255,255,0.3); user-select:none; white-space:nowrap; }
+  .input-row input { flex:1; background:transparent; border:none; outline:none; padding:14px 14px 14px 0; font-size:17px; font-weight:500; color:#fff; font-family:'Inter',sans-serif; font-variant-numeric:tabular-nums; -webkit-appearance:none; }
+  .input-row input::placeholder { color:rgba(255,255,255,0.2); }
+
+  .input-row-suffix { display:flex; align-items:center; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:14px; overflow:hidden; transition:border-color .2s,background .2s; }
+  .input-row-suffix:focus-within { border-color:rgba(247,147,26,0.5); background:rgba(255,255,255,0.08); }
+  .input-row-suffix input { flex:1; background:transparent; border:none; outline:none; padding:14px 0 14px 14px; font-size:17px; font-weight:500; color:#fff; font-family:'Inter',sans-serif; font-variant-numeric:tabular-nums; -webkit-appearance:none; }
+  .suffix-label { padding:0 14px; font-size:15px; font-weight:600; color:rgba(247,147,26,0.7); user-select:none; }
+
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+  /* Long/Short toggle */
+  .direction-toggle { display:flex; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:14px; padding:4px; gap:4px; }
+  .dir-btn { flex:1; padding:10px 0; border:none; border-radius:10px; font-size:14px; font-weight:600; font-family:'Inter',sans-serif; cursor:pointer; transition:all .2s; background:transparent; color:rgba(255,255,255,0.35); }
+  .dir-btn.active-long { background:rgba(52,199,89,0.2); color:#34c759; }
+  .dir-btn.active-short { background:rgba(255,69,58,0.2); color:#ff453a; }
+
+  .refresh-btn { background:none; border:none; cursor:pointer; padding:4px; color:rgba(255,255,255,0.3); display:flex; align-items:center; font-size:13px; gap:4px; transition:color .2s; }
+  .refresh-btn:hover { color:rgba(255,255,255,0.6); }
+  .refresh-btn svg { width:14px; height:14px; }
+  .refresh-btn.spinning svg { animation:spin 1s linear infinite; }
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .calc-btn { margin:4px 24px 0; width:calc(100% - 48px); padding:17px; border:none; border-radius:16px; color:#fff; font-size:17px; font-weight:700; font-family:'Inter',sans-serif; cursor:pointer; transition:transform .15s,opacity .15s; }
+  .calc-btn:active { transform:scale(0.97); opacity:.9; }
+  .calc-btn.long-btn { background:linear-gradient(135deg,#34c759,#28a845); box-shadow:0 4px 24px rgba(52,199,89,0.3); }
+  .calc-btn.short-btn { background:linear-gradient(135deg,#ff453a,#d93025); box-shadow:0 4px 24px rgba(255,69,58,0.3); }
+
+  .results { margin:20px 24px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:20px; overflow:hidden; }
+  .results-header { padding:14px 18px; border-bottom:1px solid rgba(255,255,255,0.06); font-size:11px; font-weight:600; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.08em; display:flex; align-items:center; gap:8px; }
+  .dir-badge { font-size:11px; font-weight:700; padding:2px 10px; border-radius:20px; }
+  .dir-badge.long { background:rgba(52,199,89,0.2); color:#34c759; }
+  .dir-badge.short { background:rgba(255,69,58,0.2); color:#ff453a; }
+  .result-row { display:flex; justify-content:space-between; align-items:center; padding:16px 18px; border-bottom:1px solid rgba(255,255,255,0.05); }
+  .result-row:last-child { border-bottom:none; }
+  .result-label { font-size:14px; color:rgba(255,255,255,0.5); }
+  .result-value { font-size:18px; font-weight:700; color:#fff; font-variant-numeric:tabular-nums; }
+  .result-value.orange { color:#f7931a; }
+  .result-value.red { color:#ff453a; }
+  .result-value.green { color:#34c759; }
+
+  .trade-visual { margin:0 24px 4px; padding:14px 18px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:16px; }
+  .trade-visual-label { font-size:11px; font-weight:600; color:rgba(255,255,255,0.3); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:12px; }
+  .price-ladder { display:flex; flex-direction:column; gap:0; }
+  .ladder-row { display:flex; align-items:center; gap:10px; }
+  .ladder-line { display:flex; flex-direction:column; align-items:center; width:20px; flex-shrink:0; }
+  .ladder-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .ladder-dot.tp { background:#34c759; }
+  .ladder-dot.entry { background:#f7931a; }
+  .ladder-dot.sl { background:#ff453a; }
+  .ladder-connector { width:2px; height:22px; margin:2px 0; border-radius:1px; }
+  .ladder-connector.profit { background:linear-gradient(180deg,#34c759,#f7931a); }
+  .ladder-connector.loss { background:linear-gradient(180deg,#f7931a,#ff453a); }
+  .ladder-info { flex:1; }
+  .ladder-price { font-size:15px; font-weight:600; color:#fff; font-variant-numeric:tabular-nums; }
+  .ladder-sublabel { font-size:11px; color:rgba(255,255,255,0.35); margin-top:1px; }
+  .ladder-badge { font-size:12px; font-weight:700; padding:3px 9px; border-radius:8px; }
+  .ladder-badge.tp { background:rgba(52,199,89,0.15); color:#34c759; }
+  .ladder-badge.entry { background:rgba(247,147,26,0.15); color:#f7931a; }
+  .ladder-badge.sl { background:rgba(255,69,58,0.15); color:#ff453a; }
+
+  .empty-results { margin:20px 24px; padding:32px 18px; background:rgba(255,255,255,0.03); border:1px dashed rgba(255,255,255,0.08); border-radius:20px; text-align:center; }
+  .empty-icon { font-size:32px; margin-bottom:10px; }
+  .empty-text { font-size:14px; color:rgba(255,255,255,0.3); line-height:1.5; }
+  .error-banner { margin:0 24px 12px; padding:12px 16px; background:rgba(255,59,48,0.12); border:1px solid rgba(255,59,48,0.25); border-radius:12px; font-size:13px; color:#ff6b6b; text-align:center; }
+  .watermark { text-align:center; padding:4px 0 0; font-size:11px; color:rgba(255,255,255,0.15); }
+  .home-indicator { height:34px; display:flex; align-items:flex-end; justify-content:center; padding-bottom:8px; }
+  .home-bar { width:134px; height:5px; background:rgba(255,255,255,0.3); border-radius:3px; }
+</style>
+</head>
+<body>
+<div class="phone-wrap">
+
+  <div class="status-bar">
+    <span id="clock">9:41</span>
+    <div class="status-icons">
+      <div class="signal-bars"><span></span><span></span><span></span></div>
+      <div class="battery"><div class="battery-fill"></div></div>
+    </div>
+  </div>
+
+  <div class="header">
+    <div class="header-top">
+      <span class="app-title">Position Size</span>
+      <div class="btc-pill"><div class="btc-dot"></div><span class="btc-label">BTC/USD</span></div>
+    </div>
+    <div class="price-display">
+      <span class="price-main" id="price-display">—</span>
+      <span id="price-status" class="price-fetching">Fetching...</span>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="form-section">
+
+    <div class="field-group">
+      <div class="field-label">Direction</div>
+      <div class="direction-toggle">
+        <button class="dir-btn active-long" id="btn-long" onclick="setDirection('long')">▲ Long</button>
+        <button class="dir-btn" id="btn-short" onclick="setDirection('short')">▼ Short</button>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <div class="field-label">
+        Open Price <span class="live-badge">LIVE</span>
+        <button class="refresh-btn" id="refresh-btn" onclick="fetchPrice()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+          </svg>Refresh
+        </button>
+      </div>
+      <div class="input-row">
+        <span class="input-prefix">$</span>
+        <input type="number" id="open-price" placeholder="Loading..." inputmode="decimal" />
+      </div>
+    </div>
+
+    <div class="field-group">
+      <div class="field-label">Stop Loss Price <span class="auto-badge" id="sl-badge">YESTERDAY LOW</span></div>
+      <div class="input-row">
+        <span class="input-prefix">$</span>
+        <input type="number" id="stop-loss" placeholder="Loading..." inputmode="decimal" />
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="field-group">
+        <div class="field-label">Account Balance</div>
+        <div class="input-row">
+          <span class="input-prefix">$</span>
+          <input type="number" id="balance" value="10000" inputmode="decimal" />
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Risk</div>
+        <div class="input-row-suffix">
+          <input type="number" id="risk" value="0.5" step="0.1" min="0.01" max="100" inputmode="decimal" />
+          <span class="suffix-label">%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <div class="field-label">Take Profit</div>
+      <div class="input-row-suffix">
+        <input type="number" id="tp-r" value="1.5" step="0.5" min="0.1" inputmode="decimal" />
+        <span class="suffix-label">R</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="error-banner" class="error-banner" style="display:none;"></div>
+  <button class="calc-btn long-btn" id="calc-btn" onclick="calculate()">Calculate Long Position</button>
+
+  <div id="results-empty" class="empty-results">
+    <div class="empty-icon">📐</div>
+    <div class="empty-text">Enter your trade details<br>and tap Calculate</div>
+  </div>
+
+  <div id="trade-visual" class="trade-visual" style="display:none;">
+    <div class="trade-visual-label">Trade Levels</div>
+    <div class="price-ladder" id="ladder"></div>
+  </div>
+
+  <div id="results" class="results" style="display:none;">
+    <div class="results-header">
+      Position Summary
+      <span class="dir-badge long" id="res-dir-badge">LONG</span>
+    </div>
+    <div class="result-row">
+      <span class="result-label">Lots (Trade Size)</span>
+      <span class="result-value orange" id="res-lots">—</span>
+    </div>
+    <div class="result-row">
+      <span class="result-label">Money at Risk</span>
+      <span class="result-value red" id="res-risk">—</span>
+    </div>
+    <div class="result-row">
+      <span class="result-label">Take Profit Price</span>
+      <span class="result-value green" id="res-tp">—</span>
+    </div>
+  </div>
+
+  <div class="watermark">BTC Position Calculator</div>
+  <div class="home-indicator"><div class="home-bar"></div></div>
+</div>
+
+<script>
+  let direction = 'long';
+  let yesterdayHigh = null;
+  let yesterdayLow = null;
+
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('clock').textContent =
+      `${now.getHours()}:${now.getMinutes().toString().padStart(2,'0')}`;
+  }
+  updateClock(); setInterval(updateClock, 10000);
+
+  function setDirection(d) {
+    direction = d;
+    const btnLong  = document.getElementById('btn-long');
+    const btnShort = document.getElementById('btn-short');
+    const calcBtn  = document.getElementById('calc-btn');
+    const slBadge  = document.getElementById('sl-badge');
+
+    btnLong.className  = 'dir-btn' + (d === 'long'  ? ' active-long'  : '');
+    btnShort.className = 'dir-btn' + (d === 'short' ? ' active-short' : '');
+
+    if (d === 'long') {
+      calcBtn.className = 'calc-btn long-btn';
+      calcBtn.textContent = 'Calculate Long Position';
+      slBadge.textContent = 'YESTERDAY LOW';
+      if (yesterdayLow) document.getElementById('stop-loss').value = yesterdayLow.toFixed(2);
+    } else {
+      calcBtn.className = 'calc-btn short-btn';
+      calcBtn.textContent = 'Calculate Short Position';
+      slBadge.textContent = 'YESTERDAY HIGH';
+      if (yesterdayHigh) document.getElementById('stop-loss').value = yesterdayHigh.toFixed(2);
+    }
+
+    if (document.getElementById('results').style.display !== 'none') calculate();
+  }
+
+  async function fetchPrice() {
+    const btn = document.getElementById('refresh-btn');
+    btn.classList.add('spinning');
+    try {
+      const [tickerRes, kRes] = await Promise.all([
+        fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT'),
+        fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=2')
+      ]);
+      const tickerData = await tickerRes.json();
+      const kData      = await kRes.json();
+
+      const price = parseFloat(tickerData.price);
+      yesterdayLow  = parseFloat(kData[0][3]);
+      yesterdayHigh = parseFloat(kData[0][2]);
+
+      document.getElementById('open-price').value = price.toFixed(2);
+      document.getElementById('stop-loss').value  =
+        direction === 'long' ? yesterdayLow.toFixed(2) : yesterdayHigh.toFixed(2);
+
+      document.getElementById('price-display').textContent =
+        '$' + price.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+      const yesterdayOpen = parseFloat(kData[0][1]);
+      const changePct = ((price - yesterdayOpen) / yesterdayOpen * 100).toFixed(2);
+      const statusEl = document.getElementById('price-status');
+      statusEl.className = 'price-change ' + (changePct >= 0 ? 'up' : 'down');
+      statusEl.textContent = (changePct >= 0 ? '+' : '') + changePct + '%';
+
+      hideError();
+      if (document.getElementById('results').style.display !== 'none') calculate();
+    } catch(e) {
+      showError('Could not fetch price. Enter manually.');
+    } finally {
+      btn.classList.remove('spinning');
+    }
+  }
+
+  function showError(msg) { const e = document.getElementById('error-banner'); e.textContent = msg; e.style.display = 'block'; }
+  function hideError()    { document.getElementById('error-banner').style.display = 'none'; }
+  function fmt(n) { return '$' + n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+  function calculate() {
+    const openPrice = parseFloat(document.getElementById('open-price').value);
+    const stopLoss  = parseFloat(document.getElementById('stop-loss').value);
+    const balance   = parseFloat(document.getElementById('balance').value);
+    const riskPct   = parseFloat(document.getElementById('risk').value);
+    const tpR       = parseFloat(document.getElementById('tp-r').value);
+
+    if (!openPrice || !stopLoss || !balance || !riskPct || !tpR) { showError('Please fill in all fields.'); return; }
+    if (direction === 'long'  && stopLoss >= openPrice) { showError('For a long trade, stop loss must be below entry price.');  return; }
+    if (direction === 'short' && stopLoss <= openPrice) { showError('For a short trade, stop loss must be above entry price.'); return; }
+
+    hideError();
+
+    const stopDistance    = Math.abs(openPrice - stopLoss);
+    const moneyAtRisk     = balance * (riskPct / 100);
+    const btcAmount       = moneyAtRisk / stopDistance;
+    const potentialProfit = moneyAtRisk * tpR;
+    const tpPrice = direction === 'long'
+      ? openPrice + (stopDistance * tpR)
+      : openPrice - (stopDistance * tpR);
+
+    document.getElementById('res-lots').textContent = btcAmount.toFixed(4) + ' BTC';
+    document.getElementById('res-risk').textContent = fmt(moneyAtRisk);
+    document.getElementById('res-tp').textContent   = fmt(tpPrice);
+
+    const badge = document.getElementById('res-dir-badge');
+    badge.textContent = direction === 'long' ? 'LONG' : 'SHORT';
+    badge.className = 'dir-badge ' + direction;
+
+    const ladder = document.getElementById('ladder');
+    if (direction === 'long') {
+      ladder.innerHTML = `
+        <div class="ladder-row">
+          <div class="ladder-line"><div class="ladder-dot tp"></div></div>
+          <div class="ladder-info"><div class="ladder-price">${fmt(tpPrice)}</div><div class="ladder-sublabel">Take Profit</div></div>
+          <div class="ladder-badge tp">+${tpR}R</div>
+        </div>
+        <div class="ladder-row">
+          <div class="ladder-line"><div class="ladder-connector profit"></div></div>
+          <div style="flex:1;padding:0 0 0 10px"><div style="font-size:12px;color:rgba(52,199,89,0.6);font-weight:500">Potential profit</div></div>
+          <div style="font-size:13px;font-weight:600;color:#34c759">${fmt(potentialProfit)}</div>
+        </div>
+        <div class="ladder-row">
+          <div class="ladder-line"><div class="ladder-dot entry"></div></div>
+          <div class="ladder-info"><div class="ladder-price">${fmt(openPrice)}</div><div class="ladder-sublabel">Entry</div></div>
+          <div class="ladder-badge entry">ENTRY</div>
+        </div>
+        <div class="ladder-row">
+          <div class="ladder-line"><div class="ladder-connector loss"></div></div>
+          <div style="flex:1;padding:0 0 0 10px"><div style="font-size:12px;color:rgba(255,69,58,0.6);font-weight:500">Max risk</div></div>
+          <div style="font-size:13px;font-weight:600;color:#ff453a">${fmt(moneyAtRisk)}</div>
+        </div>
+        <div class="ladder-row">
+          <div class="ladder-line"><div class="ladder-dot sl"></div></div>
+          <div class="ladder-info"><div class="ladder-price">${fmt(stopLoss)}</div><div class="ladder-sublabel">Stop Loss</div></div>
+          <div class="ladder-badge sl">-1R</div>
+        </div>`;
+    } else {
+      ladder.innerHTML = `
+        <div class="ladder-row">
+          <div class="ladder-line"><div class="ladder-dot sl"></div></div>
+          <div class="ladder-info"><div class="ladder-price">${fmt(stopLoss)}</div><div class="ladder-sublabel">Stop Loss</div></div>
+          <div class="ladder-badge sl">-1R</div>
+        </div>
+        <div class="ladder-row">
+          <div class="ladder-line"><div class="ladder-connector loss" style="background:linear-gradient(180deg,#ff453a,#f7931a)"></div></div>
+          <div style="flex:1;padding:0 0 0 10px"><div style="font-size:12px;color:rgba(255,69,58,0.6);font-weight:500">Max risk</div></div>
+          <div style="font-size:13px;font-weight:600;color:#ff453a">${fmt(moneyAtRisk)}</div>
+        </div>
+        <div class="ladder-row">
+          <div class="ladder-line"><div class="ladder-dot entry"></div></div>
+          <div class="ladder-info"><div class="ladder-price">${fmt(openPrice)}</div><div class="ladder-sublabel">Entry (Short)</div></div>
+          <div class="ladder-badge entry">ENTRY</div>
+        </div>
+        <div class="ladder-row">
+          <div class="ladder-line"><div class="ladder-connector profit" style="background:linear-gradient(180deg,#f7931a,#34c759)"></div></div>
+          <div style="flex:1;padding:0 0 0 10px"><div style="font-size:12px;color:rgba(52,199,89,0.6);font-weight:500">Potential profit</div></div>
+          <div style="font-size:13px;font-weight:600;color:#34c759">${fmt(potentialProfit)}</div>
+        </div>
+        <div class="ladder-row">
+          <div class="ladder-line"><div class="ladder-dot tp"></div></div>
+          <div class="ladder-info"><div class="ladder-price">${fmt(tpPrice)}</div><div class="ladder-sublabel">Take Profit</div></div>
+          <div class="ladder-badge tp">+${tpR}R</div>
+        </div>`;
+    }
+
+    document.getElementById('results-empty').style.display = 'none';
+    document.getElementById('trade-visual').style.display = 'block';
+    document.getElementById('results').style.display = 'block';
+  }
+
+  ['open-price','stop-loss','balance','risk','tp-r'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => {
+      if (document.getElementById('results').style.display !== 'none') calculate();
+    });
+  });
+
+  fetchPrice();
+</script>
+</body>
+</html>
